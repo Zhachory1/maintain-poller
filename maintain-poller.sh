@@ -35,6 +35,17 @@ mkdir -p "$STATE_DIR/repos" "$STATE_DIR/worktrees"
 touch "$SEEN"
 log() { echo "$(date -u +%FT%TZ) $*"; }
 
+# Claude Code ignores a repo's .claude/settings.json (e.g. its test-command allowlist) until the
+# workspace is trusted. Trust must be on the exact clone; worktrees resolve to it. Opt-in, set at install.
+claude_trust() {
+  local cfg="${CLAUDE_CONFIG_DIR:-$HOME}/.claude.json" p tmp
+  [ -f "$cfg" ] || return 0
+  p="$(cd "$1" && pwd -P)"
+  jq -e --arg p "$p" '.projects[$p].hasTrustDialogAccepted == true' "$cfg" >/dev/null 2>&1 && return 0
+  tmp="$(mktemp "$cfg.XXXXXX")" || return 1
+  if jq --arg p "$p" '.projects[$p].hasTrustDialogAccepted = true' "$cfg" > "$tmp"; then mv "$tmp" "$cfg"; else rm -f "$tmp"; return 1; fi
+}
+
 me="$(gh api user --jq .login)"
 prs="$(gh search prs --author @me --state open --limit 100 --json repository,number,isDraft \
   --jq '.[] | select(.isDraft | not) | [.repository.nameWithOwner, .number] | @tsv')"
@@ -84,6 +95,7 @@ while IFS=$'\t' read -r repo number; do
     git -C "$clone" config credential.helper ''
     git -C "$clone" config --add credential.helper '!gh auth git-credential'
   fi
+  if [ -n "${PR_MAINTAIN_TRUST_CLAUDE:-}" ]; then claude_trust "$clone" || log "could not mark $clone trusted for Claude" >&2; fi
   git -C "$clone" fetch -q origin "+refs/heads/$branch:refs/remotes/origin/$branch" || { skip "fetch of $branch failed"; continue; }
   wt="$STATE_DIR/worktrees/${repo//\//-}-$number"
   git -C "$clone" worktree remove --force "$wt" 2>/dev/null || rm -rf "$wt"

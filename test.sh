@@ -45,7 +45,8 @@ echo "\$(pwd) \$(git rev-parse HEAD) :: \$1" >> "$tmp/agent.log"
 AGENT
 chmod +x "$tmp/agent"
 
-export PATH="$tmp:$PATH" PR_MAINTAIN_STATE_DIR="$tmp/state" PR_MAINTAIN_AGENT_CMD="$tmp/agent"
+mkdir -p "$tmp/claude"; echo '{"userID":"u","projects":{"/x":{"hasTrustDialogAccepted":true}}}' > "$tmp/claude/.claude.json"
+export PATH="$tmp:$PATH" PR_MAINTAIN_STATE_DIR="$tmp/state" PR_MAINTAIN_AGENT_CMD="$tmp/agent" CLAUDE_CONFIG_DIR="$tmp/claude" PR_MAINTAIN_TRUST_CLAUDE=1
 # Skip self-update for runs from this checkout so the test never moves the dev working copy to a tag.
 export PR_MAINTAIN_UPDATED=1
 calls() { if [ -e "$tmp/agent.log" ]; then wc -l < "$tmp/agent.log" | tr -d ' '; else echo 0; fi; }
@@ -71,6 +72,9 @@ grep -q "worktrees/o-r-1 " <<< "$line" || fail "agent not in per-PR worktree"
 grep -q "skills/pr-review-handler/SKILL.md" <<< "$line" || fail "prompt missing bundled skill path"
 grep -q "git push origin HEAD:feat" <<< "$line" || fail "prompt missing push target"
 [ ! -e "$tmp/state/worktrees/o-r-1" ] || fail "worktree not removed"
+clonep="$(cd "$tmp/state/repos/o/r" && pwd -P)"
+jq -e --arg p "$clonep" '.projects[$p].hasTrustDialogAccepted == true and .userID == "u" and .projects["/x"].hasTrustDialogAccepted' "$tmp/claude/.claude.json" >/dev/null \
+  || fail "clone not trusted for Claude, or other .claude.json keys lost"
 git -C "$tmp/state/repos/o/r" config --get-all credential.helper | grep -q "gh auth git-credential" || fail "clone missing gh credential helper"
 
 poll; [ "$(calls)" = 1 ] || fail "same feedback ran twice"

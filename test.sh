@@ -41,6 +41,8 @@ chmod +x "$tmp/gh"
 cat > "$tmp/agent" <<AGENT
 #!/bin/bash
 echo "\$(pwd) \$(git rev-parse HEAD) :: \$1" >> "$tmp/agent.log"
+mkdir -p .maintain-scratch && echo body > .maintain-scratch/issue.md
+git status --porcelain >> "$tmp/agent-status.log"
 [ ! -e "$tmp/agent-fail" ]
 AGENT
 chmod +x "$tmp/agent"
@@ -77,6 +79,7 @@ jq -e --arg p "$clonep" '.projects[$p].hasTrustDialogAccepted == true and .userI
   || fail "clone not trusted for Claude, or other .claude.json keys lost"
 git -C "$tmp/state/repos/o/r" config --get-all credential.helper | grep -q "gh auth git-credential" || fail "clone missing gh credential helper"
 
+[ ! -s "$tmp/agent-status.log" ] || fail "scratch files show in git status: $(cat "$tmp/agent-status.log")"
 poll; [ "$(calls)" = 1 ] || fail "same feedback ran twice"
 
 echo '[{"user":{"login":"amy"},"created_at":"2026-01-01T00:00:09Z"}]' > "$d/inline"

@@ -168,9 +168,13 @@ Run the related tests locally before pushing a CI fix. Never disable, skip, or w
 ### Out-of-Scope Issues
 
 1. Search first: `gh issue list -R <owner/repo> --state open --search "<key terms>"`. If a matching issue exists, use it and do not create another.
-2. Otherwise create one with `gh issue create -R <owner/repo> --title "<short problem>" --body-file <file>`. The body says what was found, links the PR and the review comment or check run, and states why it is outside the PR.
+2. Otherwise create one with `gh issue create -R <owner/repo> --title "<short problem>" --body-file <file>`, where `<file>` is a scratch file (see **Scratch files**). The body says what was found, links the PR and the review comment or check run, and states why it is outside the PR.
 3. Add the label `from-review` only if the repo already has it (`gh label list -R <owner/repo>`). Do not create labels.
 4. If issues are disabled or creation fails, put the same content in the thread reply or PR comment instead, and report it.
+
+### Scratch files
+
+Write issue bodies, reply drafts, and other temporary files in `.maintain-scratch/` at the root of the working copy (create it with `mkdir -p`). Never write to `/tmp` or other paths outside the working copy; you may not be allowed to delete them there. Never commit scratch files: check `git status` before each commit and do not stage `.maintain-scratch/`. Delete them when done with `command rm -rf .maintain-scratch`. The `command` prefix skips shell aliases, such as an `rm` that asks for confirmation and does nothing when no one answers.
 
 ### Step 5: Push First, Then Reply and Resolve
 

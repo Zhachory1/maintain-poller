@@ -1,5 +1,8 @@
 # maintain-poller
 
+> **Moved:** this poller now lives in [Zhachory1/pr-pollers](https://github.com/Zhachory1/pr-pollers) with the review, maintain, and build pollers together. New installs should use that repo; its install steps replace this one. This repo stays working for existing installs.
+
+
 A macOS launchd job that keeps your own open PRs moving. When someone else reviews or comments on your PR, or its CI fails, it runs your coding agent with the bundled [`pr-review-handler`](skills/pr-review-handler/SKILL.md) skill. The agent:
 
 - fixes review feedback that is in scope for the PR, pushes, replies, and resolves those threads;

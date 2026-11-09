@@ -74,6 +74,9 @@ grep -q "worktrees/o-r-1 " <<< "$line" || fail "agent not in per-PR worktree"
 grep -q "skills/pr-review-handler/SKILL.md" <<< "$line" || fail "prompt missing bundled skill path"
 grep -q "git push origin HEAD:feat" <<< "$line" || fail "prompt missing push target"
 [ ! -e "$tmp/state/worktrees/o-r-1" ] || fail "worktree not removed"
+# A user's global ssh rewrite must not apply in the poller's clones: they push over https with gh credentials.
+[ "$(git -C "$tmp/state/repos/o/r" config --get url.https://github.com/.insteadOf)" = "https://github.com/" ] \
+  || fail "clone does not pin https over a global url rewrite"
 clonep="$(cd "$tmp/state/repos/o/r" && pwd -P)"
 jq -e --arg p "$clonep" '.projects[$p].hasTrustDialogAccepted == true and .userID == "u" and .projects["/x"].hasTrustDialogAccepted' "$tmp/claude/.claude.json" >/dev/null \
   || fail "clone not trusted for Claude, or other .claude.json keys lost"
